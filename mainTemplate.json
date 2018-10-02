@@ -1,0 +1,96 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "West Europe",
+            "allowedValues": [
+                "UK South",
+                "West Europe"
+            ],
+            "metadata": {
+                "description": "Azure region for deployment."
+            }
+        },
+        "addressSpace": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16",
+            "allowedValues": [
+                "10.0.0.0/16",
+                "10.1.0.0/16",
+                "10.2.0.0/16",
+                "10.3.0.0/16",
+                "10.4.0.0/16",
+                "172.16.0.0./16",
+                "172.17.0.0./16",
+                "192.168.0.0/16"
+            ],
+            "metadata": {
+                "description": "The /16 address space to use. Ensure that it does not conflict with on-premise address spaces."
+            }
+        },
+        "vpnGateway": {
+            "type": "string",
+            "defaultValue": "None",
+            "allowedValues": [
+                "None",
+                "VpnGw1",
+                "VpnGw2",
+                "VpnGw3"
+            ],
+            "metadata": {
+                "description": "SKU for the VPN Gateway"
+            }
+        }
+    },
+    "variables": {
+        "vnetUri": "https://raw.githubusercontent.com/azurecitadel/arm-templates/master/vnet.json",
+        "vpnGateway": "[if(equals(parameters('vpnGateway'), 'None'), '', parameters('vpnGateway'))]",
+        "network": "[replace(parameters('addressSpace'), '.0.0/16', '')]"
+    },
+    "resources": [
+        {
+            "name": "deployVirtualNetwork",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vnetUri')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tags": {
+                        "value": {
+                            "environment": "production",
+                            "source": "managed application"
+                        }
+                    },
+                    "vnet": {
+                        "value": {
+                            "name": "virtualNetwork",
+                            "addressPrefixes": [
+                                "[parameters('addressSpace')]"
+                            ],
+                            "subnets": [
+                                {
+                                    "name": "GatewaySubnet",
+                                    "addressPrefix": "[concat(variables('network'), '.0.0/24')]"
+                                },
+                                {
+                                    "name": "Production",
+                                    "addressPrefix": "[concat(variables('network'), '.1.0/24')]"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
