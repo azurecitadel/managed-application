@@ -1,0 +1,98 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Compute.MultiVm",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "basics": [],
+        "steps": [
+            {
+                "name": "networkConfig",
+                "label": "Virtual Network settings",
+                "subLabel": {
+                    "preValidation": "Configure the network settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Network settings",
+                "elements": [
+                    {
+                        "name": "networkAddressSpace",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Virtual Network address space",
+                        "defaultValue": "10.0.0.0/16",
+                        "toolTip": "Choose CIDR address space for the virtual network.",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "10.0.0.0/16",
+                                    "value": "10.0.0.0/16"
+                                },
+                                {
+                                    "label": "10.1.0.0/16",
+                                    "value": "10.1.0.0/16"
+                                },
+                                {
+                                    "label": "10.2.0.0/16",
+                                    "value": "10.2.0.0/16"
+                                },
+                                {
+                                    "label": "10.3.0.0/16",
+                                    "value": "10.3.0.0/16"
+                                },
+                                {
+                                    "label": "10.4.0.0/16",
+                                    "value": "10.4.0.0/16"
+                                },
+                                {
+                                    "label": "172.16.0.0./16",
+                                    "value": "172.16.0.0./16"
+                                },
+                                {
+                                    "label": "172.17.0.0./16",
+                                    "value": "172.17.0.0./16"
+                                },
+                                {
+                                    "label": "192.168.0.0/16",
+                                    "value": "192.168.0.0/16"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "vpnGateway",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "VPN Gateway SKU",
+                        "defaultValue": "10.0.0.0/16",
+                        "toolTip": "Choose CIDR address space for the virtual network.",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "None",
+                                    "value": ""
+                                },
+                                {
+                                    "label": "VpnGw1 (650 Mbps)",
+                                    "value": "VpnGw1"
+                                },
+                                {
+                                    "label": "VpnGw2 (1 Gbps)",
+                                    "value": "VpnGw2"
+                                },
+                                {
+                                    "label": "VpnGw3 (1.25 Gbps)",
+                                    "value": "VpnGw3"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
+            "storageAccountType": "[steps('storageConfig').storageAccounts.type]",
+            "location": "[location()]"
+        }
+    }
+}

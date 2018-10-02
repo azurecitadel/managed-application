@@ -32,9 +32,9 @@
         },
         "vpnGateway": {
             "type": "string",
-            "defaultValue": "None",
+            "defaultValue": "",
             "allowedValues": [
-                "None",
+                "",
                 "VpnGw1",
                 "VpnGw2",
                 "VpnGw3"
@@ -44,8 +44,10 @@
             }
         }
     },
-    "variables": {
-        "vnetUri": "https://raw.githubusercontent.com/azurecitadel/arm-templates/master/vnet.json",
+
+    "artifacts": {
+
+        "logAnalytics": "[uri(deployment().properties.templateLink.uri, 'nested/vnet.json')]",
         "vpnGateway": "[if(equals(parameters('vpnGateway'), 'None'), '', parameters('vpnGateway'))]",
         "network": "[replace(parameters('addressSpace'), '.0.0/16', '')]"
     },
