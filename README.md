@@ -49,7 +49,7 @@ objectId=$(az ad group show --group "UK OCP CSA Team" --query objectId --output 
 
 #### Get the inbuilt role's objectId
 
-OK, we'll use Owner.
+We'll use the unbuilt Owner role.
 
 ```bash
 az role definition list --name Owner --query [].name --output tsv
@@ -57,7 +57,7 @@ az role definition list --name Owner --query [].name --output tsv
 roleId=$(az role definition list --name Owner --query [].name --output tsv)
 ```
 
-Script this based on being provided a standard AD security group name.
+**ToDo: Script this based on being provided a standard AD security group name.**
 
 #### Create the resource group
 
@@ -171,3 +171,17 @@ If you wanted to give the original group (UK OCP CSA Team) as Owner for the reso
 ```bash
 objectId=$(az ad group show --group "UK OCP CSA Team" --query objectId --output tsv)
 az role assignment create --role Owner --resource-group managedApplication --assignee-object-id $objectId --output json
+```
+
+#### Updating the managed application
+
+If you change the files then recreate the zip and rerun the `az managedapp definition create` command.
+
+You can check the uploaded version of the template reflects the change. (You'll need to install jq first)
+
+```bash
+templateUri=$(az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplication --query "artifacts[?type == 'Template'].uri" --output tsv)
+curl $templateUri | jq
+```
+
+The uri for the UI definition cannot be seen in the same way as it requires an authorization header.
