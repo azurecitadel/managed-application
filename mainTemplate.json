@@ -4,10 +4,10 @@
     "parameters": {
         "location": {
             "type": "string",
-            "defaultValue": "West Europe",
+            "defaultValue": "westeurope",
             "allowedValues": [
-                "UK South",
-                "West Europe"
+                "uksouth",
+                "westeurope"
             ],
             "metadata": {
                 "description": "Azure region for deployment."
