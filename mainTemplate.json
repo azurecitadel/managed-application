@@ -44,10 +44,8 @@
             }
         }
     },
-
-    "artifacts": {
-
-        "logAnalytics": "[uri(deployment().properties.templateLink.uri, 'nested/vnet.json')]",
+    "variables": {
+        "vnetUri": "[uri(deployment().properties.templateLink.uri, 'nested/vnet.json')]",
         "vpnGateway": "[if(equals(parameters('vpnGateway'), 'None'), '', parameters('vpnGateway'))]",
         "network": "[replace(parameters('addressSpace'), '.0.0/16', '')]"
     },

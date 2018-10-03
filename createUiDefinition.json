@@ -90,8 +90,8 @@
             }
         ],
         "outputs": {
-            "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
-            "storageAccountType": "[steps('storageConfig').storageAccounts.type]",
+            "addressSpace": "[steps('networkConfig').networkAddressSpace]",
+            "vpnGateway": "[steps('networkConfig').vpnGateway]",
             "location": "[location()]"
         }
     }
