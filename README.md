@@ -16,7 +16,7 @@ Development area for building block ARM templates
 1. Create the managed application definition
     * Get an AAD group or application ID
     * Get the role definition ID, e.g. Owner
-    * Create a resource group for the application
+    * Create a resource group for the application definition
     * Create the managed application definition resource
     * Allow others to read the definition
 1. Create the managed application (CLI)
@@ -185,3 +185,20 @@ curl $templateUri | jq
 ```
 
 The uri for the UI definition cannot be seen in the same way as it requires an authorization header.
+
+## Partner Admin Link
+
+<https://aka.ms/adminpartnerlink>
+
+az extension add --name managementpartner
+az login --tenant <tenant>
+az managementpartner create --partner-id 12345
+
+(this works in the Cloud Shell as well)
+
+Dummy MPN ID (actually linked back to Microsoft): **3583635**
+
+    Location ID is 3583636 (Redmond)
+    There is a UK test location ID: 4166758
+
+OK, so PAL looks like it is just linking an account (user or service principal) in a tenancy to an MPN.  And some magic does the rest for reporting.  Auto DPoR?
