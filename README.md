@@ -28,6 +28,38 @@ Development area for building block ARM templates
     * Create
     * Choose the managed application
 
+### Package the files
+
+Create as a GitHub repo and then it is easy.  Or use the following:
+
+```bash
+az group create --name managedApplications --location eastus
+
+subscriptionId=$(az account show --query id --output tsv)
+storageAccount=manageapps$(echo $subscriptionId | md5sum | tr -dc "[:lower:][:digit:]" | head -c12)
+
+az storage account create --name $storageAccount \
+  --kind Storage \
+  --sku Standard_LRS \
+  --resource-group managedApplications \
+  --location eastus
+
+storageKey=$(az storage account keys list \
+  --account-name $storageAccount \
+  --resource-group managedApplications \
+  --query "[1].value" --output tsv)
+
+az storage container create --name appcontainer \
+  --account-name $storageAccount \
+  --account-key $storageKey
+
+az storage blob upload --name app.zip \
+  --account-name $storageAccount \
+  --account-key $storageKey \
+  --container appcontainer \
+  --file app.zip
+```
+
 ### Create the managed application definition
 
 The <https://docs.microsoft.com/en-us/azure/managed-applications/publish-service-catalog-app> page has the PowerShell cmdlets. This section will have the Azure CLI commands.
@@ -62,7 +94,7 @@ roleId=$(az role definition list --name Owner --query [].name --output tsv)
 #### Create the resource group
 
 ```bash
-az group create --location westeurope --name managedApplication --output json
+az group create --location westeurope --name managedApplications --output json
 ```
 
 #### Create the managed application
@@ -75,6 +107,12 @@ If you navigate through to it and right click the Download button then the Copy 
 
 `https://github.com/azurecitadel/arm-templates/raw/master/myFirstManagedApplication.zip`
 
+If it is in an Azure blob then you can use the following:
+
+```bash
+
+```
+
 ```bash
 objectId=$(az ad group show --group "UK OCP CSA Team" --query objectId --output tsv)
 roleId=$(az role definition list --name Owner --query [].name --output tsv)
@@ -83,7 +121,7 @@ zipUri="https://github.com/azurecitadel/arm-templates/raw/master/myFirstManagedA
 az managedapp definition create \
     --name "MyFirstManagedApplication" \
     --location "West Europe" \
-    --resource-group "managedApplication" \
+    --resource-group "managedApplications" \
     --lock-level ReadOnly \
     --display-name "Managed Application: Network" \
     --description "Core network with optional VPN Gateway" \
@@ -104,7 +142,7 @@ Example output json:
     {
       "name": "CreateUiDefinition",
       "type": "Custom",
-      "uri": "https://management.azure.com/subscriptions/2d31be49-d959-4415-bb65-8aec2c90ba62/resourceGroups/managedApplication/providers/Microsoft.Solutions/applicationDefinitions/MyFirstManagedApplication/applicationArtifacts/CreateUiDefinition?api-version=2017-09-01"
+      "uri": "https://management.azure.com/subscriptions/2d31be49-d959-4415-bb65-8aec2c90ba62/resourceGroups/managedApplications/providers/Microsoft.Solutions/applicationDefinitions/MyFirstManagedApplication/applicationArtifacts/CreateUiDefinition?api-version=2017-09-01"
     }
   ],
   "authorizations": [
@@ -116,7 +154,7 @@ Example output json:
   "createUiDefinition": null,
   "description": "Core network with optional VPN Gateway",
   "displayName": "Managed Application: Network",
-  "id": "/subscriptions/2d31be49-d959-4415-bb65-8aec2c90ba62/resourceGroups/managedApplication/providers/Microsoft.Solutions/applicationDefinitions/MyFirstManagedApplication",
+  "id": "/subscriptions/2d31be49-d959-4415-bb65-8aec2c90ba62/resourceGroups/managedApplications/providers/Microsoft.Solutions/applicationDefinitions/MyFirstManagedApplication",
   "identity": null,
   "isEnabled": "True",
   "location": "westeurope",
@@ -125,7 +163,7 @@ Example output json:
   "managedBy": null,
   "name": "MyFirstManagedApplication",
   "packageFileUri": null,
-  "resourceGroup": "managedApplication",
+  "resourceGroup": "managedApplications",
   "sku": null,
   "tags": null,
   "type": "Microsoft.Solutions/applicationDefinitions"
@@ -139,12 +177,12 @@ One thing to note is that RBAC inheritance (from Management Group -> Subscriptio
 The managed application definition can be seen in the resource group:
 
 ```bash
-az resource list --resource-group managedApplication --output table
-Name                       ResourceGroup       Location    Type                                        Status
--------------------------  ------------------  ----------  ------------------------------------------  --------
-MyFirstManagedApplication  managedApplication  westeurope  Microsoft.Solutions/applicationDefinitions
+az resource list --resource-group managedApplications --output table
+Name                       ResourceGroup        Location    Type                                        Status
+-------------------------  -------------------  ----------  ------------------------------------------  --------
+MyFirstManagedApplication  managedApplications  westeurope  Microsoft.Solutions/applicationDefinitions
 
-az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplication --output json
+az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplications --output json
 ```
 
 Let's add another group as readers for the definition.  For this I will use the OCP CRM Users group:
@@ -156,13 +194,13 @@ readerObjectId=$(az ad group show --group "OCP CRM Users" --query objectId --out
 You can either add the Reader role to the resource group which makes sense if you keep all of the managed applications together.  (Put the resource group in the shared subscription and call it managedApplications? Test with a CSP partner.)  And then you can skip this step when adding additional managed application definitions in the future.
 
 ```bash
-az role assignment create --role Reader --resource-group managedApplication --assignee-object-id $readerObjectId --output json
+az role assignment create --role Reader --resource-group managedApplications --assignee-object-id $readerObjectId --output json
 ```
 
 If you want to be more granular then assign to the individual resource:
 
 ```bash
-managedAppId=$(az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplication --output tsv --query id)
+managedAppId=$(az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplications --output tsv --query id)
 az role assignment create --role Reader --scope $managedAppId --assignee-object-id $readerObjectId --output json
 ```
 
@@ -170,7 +208,7 @@ If you wanted to give the original group (UK OCP CSA Team) as Owner for the reso
 
 ```bash
 objectId=$(az ad group show --group "UK OCP CSA Team" --query objectId --output tsv)
-az role assignment create --role Owner --resource-group managedApplication --assignee-object-id $objectId --output json
+az role assignment create --role Owner --resource-group managedApplications --assignee-object-id $objectId --output json
 ```
 
 #### Updating the managed application
@@ -180,9 +218,11 @@ If you change the files then recreate the zip and rerun the `az managedapp defin
 You can check the uploaded version of the template reflects the change. (You'll need to install jq first)
 
 ```bash
-templateUri=$(az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplication --query "artifacts[?type == 'Template'].uri" --output tsv)
+templateUri=$(az managedapp definition show --name "MyFirstManagedApplication" --resource-group managedApplications --query "artifacts[?type == 'Template'].uri" --output tsv)
 curl $templateUri | jq
 ```
+
+### Deploy the managed application via the Azure CLI
 
 The uri for the UI definition cannot be seen in the same way as it requires an authorization header.
 
