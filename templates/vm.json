@@ -2,7 +2,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-         "vnetName": {
+        "vnetName": {
             "type": "string"
         },
         "subnetName": {
@@ -11,13 +11,28 @@
         "vmName": {
             "type": "string"
         },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
         "adminUsername": {
-            "defaultValue": "labuser",
+            "defaultValue": "vmadmin",
             "type": "string"
         },
         "adminPassword": {
-            "defaultValue": "M1crosoft123",
+            "defaultValue": "MCTGlobalSummit'18",
             "type": "securestring"
+        },
+        "os": {
+            "type": "string",
+            "defaultValue": "windows",
+            "allowedValues": [
+                "windows",
+                "ubuntu"
+            ],
+            "metadata": {
+                "description": "Specify operating system"
+            }
         },
         "script": {
             "defaultValue": "",
@@ -26,8 +41,8 @@
                 "description": "Script extension to conditionally run.  Assumed to be in same URI location as the current template."
             }
         },
-        "pip?": {
-            "defaultValue": false,
+        "pip": {
+            "defaultValue": true,
             "type": "bool",
             "metadata": {
                 "description": "Boolean to control creation of public IP address"
@@ -49,6 +64,21 @@
         }
     },
     "variables": {
+        "saName": "[concat('bootdiags', uniqueString(resourceGroup().id))]",
+        "vmSize": "Standard_A0",
+        "windowsImageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+        },
+        "ubuntuImageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "18.04-LTS",
+            "version": "latest"
+        },
+        "imageReference": "[variables(concat(parameters('os'), 'ImageReference'))]",
         "nicName": "[concat(parameters('vmName'),'-nic')]",
         "pipName": "[concat(parameters('vmName'),'-pip')]",
         "osDiskName": "[concat(parameters('vmName'),'-os')]",
@@ -67,16 +97,29 @@
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('lbName')), '/backendAddressPools/BackendPool')]"
             }
         ],
-        "scriptUri": "[uri(deployment().properties.templateLink.uri, parameters('script'))]"
+        "scriptUri": "[if(empty(parameters('script')), '', if(startsWith(parameters('script'), 'https://'), parameters('script'), uri(deployment().properties.templateLink.uri, parameters('script'))))]",
+        "ubuntuCommand": "[concat('/bin/bash -x ', parameters('script'), ' 2>&1')]",
+        "windowsCommand": "[concat('powershell -ExecutionPolicy Unrestricted -File', parameters('script'))]",
+        "commandToExecute": "[variables(concat(parameters('os'), 'Command'))]"
     },
     "resources": [
         {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('saName')]",
+            "apiVersion": "2018-07-01",
+            "location": "[parameters('location')]",
+            "kind": "Storage",
+            "sku": {
+                "name": "Standard_LRS"
+            }
+        },
+        {
             "comments": "Conditionally create public IP address for VM",
-            "condition": "[parameters('pip?')]",
+            "condition": "[parameters('pip')]",
             "name": "[variables('pipName')]",
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2017-10-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "properties": {
                 "publicIPAllocationMethod": "Dynamic"
             }
@@ -99,7 +142,7 @@
                                 "id": "[variables('subnetId')]"
                             },
                             "loadBalancerBackendAddressPools": "[if( empty(parameters('lbName')), json('null'), variables('lbpoolArray'))]",
-                            "publicIPAddress": "[if(parameters('pip?'), variables('pipObject'), json('null'))]"
+                            "publicIPAddress": "[if(parameters('pip'), variables('pipObject'), json('null'))]"
                         }
                     }
                 ]
@@ -115,7 +158,7 @@
             ],
             "properties": {
                 "hardwareProfile": {
-                    "vmSize": "Standard_A0"
+                    "vmSize": "[variables('vmSize')]"
                 },
                 "osProfile": {
                     "computerName": "[parameters('vmName')]",
@@ -123,12 +166,7 @@
                     "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
-                    "imageReference": {
-                        "publisher": "canonical",
-                        "offer": "UbuntuServer",
-                        "sku": "16.04.0-LTS",
-                        "version": "latest"
-                    },
+                    "imageReference": "[variables('imageReference')]",
                     "osDisk": {
                         "name": "[variables('osDiskName')]",
                         "createOption": "FromImage"
@@ -143,7 +181,8 @@
                 },
                 "diagnosticsProfile": {
                     "bootDiagnostics": {
-                        "enabled": false
+                        "enabled": true,
+                        "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts/', variables('saName'))).primaryEndpoints.blob]"
                     }
                 },
                 "availabilitySet": "[if(empty(parameters('avsetName')), json('null'), variables('avsetObject'))]"
@@ -151,7 +190,7 @@
         },
         {
             "condition": "[not(empty(parameters('script')))]",
-            "comments": "Script, stdout and stderr will be output to /var/lib/waagent/custom-script/download/0/.  Use sudo to access.",
+            "comments": "On Linux, script stdout and stderr will be output to /var/lib/waagent/custom-script/download/0/.  Use sudo to access.",
             "name": "[concat(parameters('vmName'), '/script-', parameters('script'))]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2017-12-01",
@@ -165,7 +204,7 @@
                     "fileUris": [
                         "[variables('scriptUri')]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash -x ', parameters('script'), ' 2>&1')]"
+                    "commandToExecute": "[variables('commandToExecute')]"
                 }
             },
             "dependsOn": [
