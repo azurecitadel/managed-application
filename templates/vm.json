@@ -98,6 +98,20 @@
             "sku": "18.04-LTS",
             "version": "latest"
         },
+        "imageInfo": {
+            "windows": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2016-Datacenter",
+                "version": "latest"
+            },
+            "ubuntu": {
+                "publisher": "Canonical",
+                "offer": "UbuntuServer",
+                "sku": "18.04-LTS",
+                "version": "latest"
+            }
+        },
         "imageReference": "[variables(concat(parameters('os'), 'ImageReference'))]",
         "nicName": "[concat(parameters('vmName'),'-nic')]",
         "pipName": "[concat(parameters('vmName'),'-pip')]",
@@ -244,5 +258,11 @@
                 "[parameters('vmName')]"
             ]
         }
-    ]
+    ],
+    "outputs": {
+        "imageInfo": {
+            "type": "object",
+            "value": "[variables('imageInfo')[parameters('os')]]"
+        }
+    }
 }
