@@ -102,5 +102,11 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "pip": {
+            "type": "string",
+            "value": "[reference(variables('pipId')).ipAddress]"
+        }
+    }
 }
