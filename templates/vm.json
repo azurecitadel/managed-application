@@ -56,7 +56,7 @@
             }
         },
         "pip": {
-            "defaultValue": true,
+            "defaultValue": false,
             "type": "bool",
             "metadata": {
                 "description": "Boolean to control creation of public IP address"
@@ -86,36 +86,29 @@
     },
     "variables": {
         "saName": "[concat('bootdiags', uniqueString(resourceGroup().id))]",
-        "windowsImageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2016-Datacenter",
-            "version": "latest"
-        },
-        "ubuntuImageReference": {
-            "publisher": "Canonical",
-            "offer": "UbuntuServer",
-            "sku": "18.04-LTS",
-            "version": "latest"
-        },
-        "imageInfo": {
-            "windows": {
+        "nicName": "[concat(parameters('vmName'),'-nic')]",
+        "pipName": "[concat(parameters('vmName'),'-pip')]",
+        "osDiskName": "[concat(parameters('vmName'),'-os')]",
+        "windows": {
+            "imageReference": {
                 "publisher": "MicrosoftWindowsServer",
                 "offer": "WindowsServer",
                 "sku": "2016-Datacenter",
                 "version": "latest"
             },
-            "ubuntu": {
+            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File', parameters('script'))]"
+        },
+        "ubuntu": {
+            "imageReference": {
                 "publisher": "Canonical",
                 "offer": "UbuntuServer",
                 "sku": "18.04-LTS",
                 "version": "latest"
-            }
+            },
+            "commandToExecute": "[concat('/bin/bash -x ', parameters('script'), ' 2>&1')]"
         },
-        "imageReference": "[variables(concat(parameters('os'), 'ImageReference'))]",
-        "nicName": "[concat(parameters('vmName'),'-nic')]",
-        "pipName": "[concat(parameters('vmName'),'-pip')]",
-        "osDiskName": "[concat(parameters('vmName'),'-os')]",
+        "os": "[variables(parameters('os'))]",
+        "scriptUri": "[if(empty(parameters('script')), '', if(startsWith(parameters('script'), 'https://'), parameters('script'), uri(deployment().properties.templateLink.uri, parameters('script'))))]",
         "copy": [
             {
                 "name": "dataDisks",
@@ -142,14 +135,11 @@
             {
                 "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('lbName')), '/backendAddressPools/BackendPool')]"
             }
-        ],
-        "scriptUri": "[if(empty(parameters('script')), '', if(startsWith(parameters('script'), 'https://'), parameters('script'), uri(deployment().properties.templateLink.uri, parameters('script'))))]",
-        "ubuntuCommand": "[concat('/bin/bash -x ', parameters('script'), ' 2>&1')]",
-        "windowsCommand": "[concat('powershell -ExecutionPolicy Unrestricted -File', parameters('script'))]",
-        "commandToExecute": "[variables(concat(parameters('os'), 'Command'))]"
+        ]
     },
     "resources": [
         {
+            "comments": "Storage account for boot diagnostics. One per resource group.",
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[variables('saName')]",
             "apiVersion": "2018-07-01",
@@ -212,7 +202,7 @@
                     "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
-                    "imageReference": "[variables('imageReference')]",
+                    "imageReference": "[variables('os').imageReference]",
                     "osDisk": {
                         "name": "[variables('osDiskName')]",
                         "createOption": "FromImage"
@@ -251,18 +241,12 @@
                     "fileUris": [
                         "[variables('scriptUri')]"
                     ],
-                    "commandToExecute": "[variables('commandToExecute')]"
+                    "commandToExecute": "[variables('os').commandToExecute]"
                 }
             },
             "dependsOn": [
                 "[parameters('vmName')]"
             ]
         }
-    ],
-    "outputs": {
-        "imageInfo": {
-            "type": "object",
-            "value": "[variables('imageInfo')[parameters('os')]]"
-        }
-    }
+    ]
 }
