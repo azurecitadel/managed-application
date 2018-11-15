@@ -23,7 +23,7 @@
                 "source": "ARM template"
             },
             "metadata": {
-                "description": "Object containing name:value pair tags"
+                "description": "Object containing name:value pair tags - MAKE MY DEFAULT EMPTY!!!!!!"
             }
         },
         "vnetName": {
@@ -80,7 +80,7 @@
             "type": "string",
             "defaultValue": "10.0.0.0/24",
             "metadata": {
-                "description": "Address space for a single subnet"
+                "description": "Address space for a single subnet."
             }
         },
         "subnet": {
